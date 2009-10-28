@@ -1,0 +1,88 @@
+ActsAsSphinxResults
+===================
+
+Provides a simple interface to do basic searches, and display the results. I found this a better solution than trying to wait for indexes or even deltas. This way my major searches will use the index and minor stuff can just be done normally.
+
+This plugin requires thinking_sphinx. Instructions on installing thinking sphinx can be found here: http://freelancing-god.github.com/ts/en/installing_thinking_sphinx.html
+
+
+Example
+=======
+
+In your model as normal define your indexes
+
+class Article < ActiveRecord::Base
+  # ...
+  
+  define_index do
+    indexes subject, :sortable => true
+    indexes content
+    indexes author(:name), :as => :author, :sortable => true
+    
+    has author_id, created_at, updated_at
+  end
+  
+  # ...
+end
+
+
+Now in your controller 
+
+class CustomersController < ApplicationController
+  acts_as_sphinx_results
+end
+
+if your model has a different name than your controller you can pass the name of your model to the acts_as method
+
+class CustomersController < ApplicationController
+  acts_as_sphinx_results :person
+end
+
+Create a search form like the one below and put it whereever you like. (Your model now has the 'search_records' method.) 
+
+WARNING - Example in HAML -> http://haml-lang.com/
+
+- form_tag('/customers/search_records') do
+  %fieldset
+    %label Keyword
+    %br
+    = text_field_tag 'keyword'
+    = submit_tag 'Find'
+
+
+Finally create a view to display the results your view must be named 'search_records_results'
+(ex. views/customers/search_records_results.html.haml)
+
+= page_entries_info @results if !@results.empty?
+%table.index{:cellspacing => "0", :cellpadding => "0", :border => "0", :id => "customer_list"}
+  %thead
+    %tr
+      %th
+        Name
+      %th
+        Email
+      %th
+        Phone
+      %th
+        State
+      %th
+        Remove
+  %tbody
+    - for customer in @results
+      %tr.node.level-1
+        %td
+          = link_to "#{customer.first_name} #{customer.last_name}", edit_admin_customer_url(:id => customer.id)
+        %td
+          = customer.email
+        %td
+          = customer.phone
+        %td
+          = customer.state
+        %td
+          = link_to "Remove", remove_admin_customer_url(:id => customer.id)
+
+= will_paginate @results if !@results.empty?
+
+That's it your done. Good luck. 
+
+Copyright (c) 2009 [name of plugin creator], released under the MIT license
